@@ -3,8 +3,9 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <packaging>pom</packaging>
 
-    <groupId>com.learnonline</groupId>
+    <groupId>com.lubover</groupId>
     <artifactId>whu-singularity</artifactId>
     <version>1.0-SNAPSHOT</version>
 
@@ -13,5 +14,9 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+    
+    <modules>
+        <module>singularity-core</module>
+    </modules>
 
 </project>
