@@ -1,4 +1,4 @@
-package com.lubover.singularity.order;
+package com.lubover.singularity.user;
 
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
@@ -9,10 +9,10 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableFeignClients
-@MapperScan("com.lubover.singularity.order.mapper")
-public class OrderApplication {
+@MapperScan("com.lubover.singularity.user.mapper")
+public class UserApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(OrderApplication.class, args);
+        SpringApplication.run(UserApplication.class, args);
     }
 }

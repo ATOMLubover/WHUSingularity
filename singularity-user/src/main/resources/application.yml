@@ -1,11 +1,11 @@
 server:
-  port: 8081
+  port: 8082
 
 spring:
   application:
-    name: singularity-order
+    name: singularity-user
   datasource:
-    url: jdbc:mysql://localhost:3306/singularity_order?useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3306/singularity_user?useSSL=false&serverTimezone=Asia/Shanghai
     username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -18,11 +18,6 @@ mybatis:
   mapper-locations: classpath:mapper/*.xml
   configuration:
     map-underscore-to-camel-case: true
-
-rocketmq:
-  name-server: localhost:9876
-  producer:
-    group: order-producer-group
 
 eureka:
   client:
