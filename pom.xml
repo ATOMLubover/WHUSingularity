@@ -17,6 +17,8 @@
     
     <modules>
         <module>singularity-core</module>
+        <module>singularity-eureka</module>
+        <module>singularity-user</module>
         <module>singularity-order</module>
     </modules>
 
