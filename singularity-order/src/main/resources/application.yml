@@ -21,3 +21,44 @@ rocketmq:
   name-server: localhost:9876
   producer:
     group: order-producer-group
+  consumer:
+    # 订单消息消费者配置
+    order-consumer-group: order-consumer-group
+    # 库存消息消费者配置
+    stock-consumer-group: stock-consumer-group
+    # 消费线程数
+    listener:
+      consume-thread-max: 20
+      consume-thread-min: 5
+      consume-timeout: 15
+
+# 消息队列配置
+mq:
+  topics:
+    # 订单相关 topic
+    order-topic: order-topic
+    # 库存相关 topic
+    stock-topic: stock-topic
+  # 消费者组配置
+  consumer-groups:
+    order: order-consumer-group
+    stock: stock-consumer-group
+  # 削峰填谷配置
+  peak-shaving:
+    # 最大消息堆积数
+    max-accumulated-messages: 1000
+    # 单次消费数量
+    batch-consume-size: 100
+    # 消费超时时间（毫秒）
+    consume-timeout-mills: 30000
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.lubover.singularity.order: DEBUG
+    org.apache.rocketmq: WARN
+    org.springframework: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
