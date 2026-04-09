@@ -14,7 +14,7 @@ WHUSingularity/
 
 ## 技术栈
 
-- **框架**: Spring Boot 4.0.3 + Spring Cloud 2025.0.0
+- **框架**: Spring Boot 3.5.0 + Spring Cloud 2025.0.0
 - **服务发现**: Netflix Eureka
 - **服务调用**: OpenFeign
 - **消息队列**: RocketMQ
