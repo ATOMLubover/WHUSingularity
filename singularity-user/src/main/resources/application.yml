@@ -25,3 +25,10 @@ eureka:
       defaultZone: http://localhost:8761/eureka/
   instance:
     prefer-ip-address: true
+
+auth:
+  jwt:
+    secret: ${JWT_SECRET:dev-secret-key}
+    expire-seconds: 7200
+  blacklist:
+    prefix: "auth:blacklist:"
