@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - WHUSingularity</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>WHUSingularity</h1>
+            <p>高并发抢单系统</p>
+        </div>
+        <div class="content">
+            <div id="alert" class="alert hidden"></div>
+            
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" name="username" placeholder="请输入用户名（4-32位字母数字下划线）" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" name="password" placeholder="请输入密码（至少8位）" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirmPassword">确认密码</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" placeholder="请再次输入密码" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="nickname">昵称（可选）</label>
+                    <input type="text" id="nickname" name="nickname" placeholder="请输入昵称">
+                </div>
+                
+                <button type="submit" class="btn btn-primary">注册</button>
+            </form>
+            
+            <div class="link">
+                已有账号？<a href="login.html">立即登录</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const nickname = document.getElementById('nickname').value.trim() || null;
+            const alertEl = document.getElementById('alert');
+            
+            if (!Utils.validateUsername(username)) {
+                Utils.showAlert(alertEl, '用户名格式错误（4-32位字母数字下划线）', 'error');
+                return;
+            }
+            
+            if (!Utils.validatePassword(password)) {
+                Utils.showAlert(alertEl, '密码长度需在8-64位之间', 'error');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                Utils.showAlert(alertEl, '两次输入的密码不一致', 'error');
+                return;
+            }
+            
+            if (!Utils.validateNickname(nickname)) {
+                Utils.showAlert(alertEl, '昵称长度需在1-32位之间', 'error');
+                return;
+            }
+            
+            try {
+                const result = await API.register(username, password, nickname || username);
+                
+                Utils.showAlert(alertEl, '注册成功！正在跳转到登录...', 'success');
+                
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+                
+            } catch (error) {
+                Utils.showAlert(alertEl, error.message || '注册失败，请重试', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

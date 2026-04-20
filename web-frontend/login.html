@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - WHUSingularity</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>WHUSingularity</h1>
+            <p>高并发抢单系统</p>
+        </div>
+        <div class="content">
+            <div id="alert" class="alert hidden"></div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" name="username" placeholder="请输入用户名" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" name="password" placeholder="请输入密码" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">登录</button>
+            </form>
+            
+            <div class="link">
+                还没有账号？<a href="register.html">立即注册</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (Auth.isLoggedIn()) {
+                window.location.href = 'index.html';
+            }
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const alertEl = document.getElementById('alert');
+            
+            if (!Utils.validateUsername(username)) {
+                Utils.showAlert(alertEl, '用户名格式错误（4-32位字母数字下划线）', 'error');
+                return;
+            }
+            
+            if (!Utils.validatePassword(password)) {
+                Utils.showAlert(alertEl, '密码长度需在8-64位之间', 'error');
+                return;
+            }
+            
+            try {
+                const result = await API.login(username, password);
+                
+                Auth.setToken(result.data.accessToken);
+                Auth.setUser(result.data.user);
+                
+                Utils.showAlert(alertEl, '登录成功！正在跳转...', 'success');
+                
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
+                
+            } catch (error) {
+                Utils.showAlert(alertEl, error.message || '登录失败，请重试', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

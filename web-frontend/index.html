@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户中心 - WHUSingularity</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>用户中心</h1>
+            <p>欢迎使用 WHUSingularity</p>
+        </div>
+        <div class="content">
+            <div id="alert" class="alert hidden"></div>
+            
+            <div class="balance-display">
+                <div class="balance-label">账户余额</div>
+                <div class="balance-amount" id="balanceAmount">¥0.00</div>
+            </div>
+            
+            <div class="user-info">
+                <div class="user-info-item">
+                    <span class="user-info-label">用户名</span>
+                    <span class="user-info-value" id="username">-</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">昵称</span>
+                    <span class="user-info-value" id="nickname">-</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">用户ID</span>
+                    <span class="user-info-value" id="userId">-</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">角色</span>
+                    <span class="user-info-value" id="role">-</span>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button type="button" class="btn btn-recharge" id="rechargeBtn">充值</button>
+                <button type="button" class="btn btn-logout" id="logoutBtn">退出登录</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 充值弹窗 -->
+    <div class="modal" id="rechargeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>账户充值</h3>
+                <button type="button" class="close-btn" id="closeModal">&times;</button>
+            </div>
+            <form id="rechargeForm">
+                <div class="form-group">
+                    <label for="rechargeAmount">充值金额</label>
+                    <input type="number" id="rechargeAmount" name="rechargeAmount" min="0.01" step="0.01" placeholder="请输入充值金额" required>
+                </div>
+                <button type="submit" class="btn btn-primary">确认充值</button>
+                <button type="button" class="btn btn-secondary" id="cancelBtn">取消</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        let currentUser = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!Auth.isLoggedIn()) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            currentUser = Auth.getUser();
+            await loadUserInfo();
+            bindEvents();
+        });
+
+        async function loadUserInfo() {
+            try {
+                if (currentUser) {
+                    document.getElementById('username').textContent = currentUser.username;
+                    document.getElementById('nickname').textContent = currentUser.nickname || currentUser.username;
+                    document.getElementById('userId').textContent = currentUser.id;
+                    document.getElementById('role').textContent = currentUser.role === 'admin' ? '管理员' : '普通用户';
+                }
+                
+                const result = await API.getUserById(currentUser.id);
+                if (result.success && result.data) {
+                    currentUser = result.data;
+                    Auth.setUser(currentUser);
+                    
+                    const balance = currentUser.balance || 0;
+                    document.getElementById('balanceAmount').textContent = Utils.formatMoney(balance);
+                }
+            } catch (error) {
+                console.error('加载用户信息失败:', error);
+            }
+        }
+
+        function bindEvents() {
+            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+            document.getElementById('rechargeBtn').addEventListener('click', () => {
+                document.getElementById('rechargeModal').classList.add('active');
+            });
+            document.getElementById('closeModal').addEventListener('click', closeModal);
+            document.getElementById('cancelBtn').addEventListener('click', closeModal);
+            document.getElementById('rechargeForm').addEventListener('submit', handleRecharge);
+        }
+
+        function closeModal() {
+            document.getElementById('rechargeModal').classList.remove('active');
+            document.getElementById('rechargeForm').reset();
+        }
+
+        async function handleLogout() {
+            try {
+                await API.logout();
+            } catch (error) {
+                console.error('登出API调用失败:', error);
+            }
+            
+            Auth.clearAuth();
+            window.location.href = 'login.html';
+        }
+
+        async function handleRecharge(e) {
+            e.preventDefault();
+            
+            const amount = document.getElementById('rechargeAmount').value;
+            const alertEl = document.getElementById('alert');
+            
+            if (!amount || parseFloat(amount) <= 0) {
+                Utils.showAlert(alertEl, '请输入有效的充值金额', 'error');
+                return;
+            }
+            
+            try {
+                const result = await API.recharge(currentUser.id, amount);
+                
+                if (result.success) {
+                    Utils.showAlert(alertEl, '充值成功！', 'success');
+                    closeModal();
+                    await loadUserInfo();
+                }
+            } catch (error) {
+                Utils.showAlert(alertEl, error.message || '充值失败，请重试', 'error');
+            }
+        }
+
+        document.getElementById('rechargeModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
