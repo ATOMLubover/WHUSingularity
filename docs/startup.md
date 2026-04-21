@@ -1,0 +1,85 @@
+## 快速启动
+
+### 1. 启动基础服务
+
+#### 1.1 启动 Nacos
+
+```bash
+# 下载 Nacos 2.x（https://github.com/alibaba/nacos/releases）
+cd nacos/bin
+
+# Linux/Mac
+sh startup.sh -m standalone
+
+# Windows
+startup.cmd -m standalone
+```
+
+访问 Nacos 控制台：http://localhost:8848/nacos（用户名/密码：nacos/nacos）
+
+#### 1.2 配置 Nacos（必须）
+
+在 Nacos 控制台创建以下配置文件（详见 `docs/nacos/README.md`）：
+
+- `singularity-order.yaml`
+- `singularity-user.yaml`
+- `singularity-stock.yaml`
+
+#### 1.3 启动 MySQL
+
+创建数据库：
+
+```sql
+-- 订单服务数据库（表结构由 Flyway 自动创建）
+CREATE DATABASE singularity_order DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 用户服务数据库
+CREATE DATABASE singularity_user DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- 执行用户服务初始化脚本：singularity-user/src/main/resources/schema.sql
+
+-- 库存服务数据库（表结构由 Flyway 自动创建）
+CREATE DATABASE singularity_stock DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+#### 1.4 启动 Redis
+
+```bash
+redis-server
+```
+
+#### 1.5 启动 RocketMQ
+
+```bash
+# 启动 NameServer
+sh bin/mqnamesrv
+
+# 启动 Broker
+sh bin/mqbroker -n localhost:9876
+```
+
+### 2. 启动微服务
+
+```bash
+# 1. 编译整个项目
+mvn clean package -DskipTests
+
+# 2. 启动服务（按顺序）
+# 启动用户服务
+java -jar singularity-user/target/singularity-user-1.0-SNAPSHOT.jar
+
+# 启动库存服务
+java -jar singularity-stock/target/singularity-stock-1.0-SNAPSHOT.jar
+
+# 启动订单服务
+java -jar singularity-order/target/singularity-order-1.0-SNAPSHOT.jar
+```
+
+### 3. 验证服务注册
+
+访问 Nacos 控制台 → 服务管理 → 服务列表，确认以下服务已注册：
+
+- `singularity-order`
+- `singularity-user`
+- `singularity-stock`
+
+---
