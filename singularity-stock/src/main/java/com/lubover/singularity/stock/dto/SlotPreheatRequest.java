@@ -3,6 +3,7 @@ package com.lubover.singularity.stock.dto;
 public class SlotPreheatRequest {
 
     private String slotId;
+    private String redisKey;
     private Long quantity;
     private Boolean overwrite;
 
@@ -12,6 +13,14 @@ public class SlotPreheatRequest {
 
     public void setSlotId(String slotId) {
         this.slotId = slotId;
+    }
+
+    public String getRedisKey() {
+        return redisKey;
+    }
+
+    public void setRedisKey(String redisKey) {
+        this.redisKey = redisKey;
     }
 
     public Long getQuantity() {

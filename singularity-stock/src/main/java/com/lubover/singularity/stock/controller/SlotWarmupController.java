@@ -26,8 +26,9 @@ public class SlotWarmupController {
     public ResponseEntity<?> preheat(@RequestBody SlotPreheatRequest request) {
         try {
             boolean overwrite = request.getOverwrite() != null && request.getOverwrite();
-            SlotPreheatResponse response = slotWarmupService.preheatSlot(
+                SlotPreheatResponse response = slotWarmupService.warmupSlot(
                     request.getSlotId(),
+                    request.getRedisKey(),
                     request.getQuantity(),
                     overwrite);
             return ResponseEntity.ok(response);

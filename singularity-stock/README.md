@@ -121,13 +121,15 @@ System.out.println("处理状态: " + log.getStatus()); // 0=待处理, 1=已处
 ```json
 {
    "slotId": "A",
+   "redisKey": "stock:bucket-1",
    "quantity": 1000,
    "overwrite": false
 }
 ```
 
 参数说明：
-- `slotId`: slot标识，最终 Redis key 为 `stock:{slotId}`
+- `slotId`: slot标识
+- `redisKey`: 可选，显式指定要预热的 Redis key。未提供时，服务将优先按配置 `singularity.order.slots` 解析对应 key；若仍未命中则回退到 `stock:{slotId}`
 - `quantity`: 预热库存，必须大于 0
 - `overwrite`: 
    - `true` 覆盖已有值
