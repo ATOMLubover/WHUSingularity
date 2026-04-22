@@ -29,6 +29,9 @@ export default function AppLayout() {
         </Text>
         <Space>
           <Text style={{ color: 'rgba(255,255,255,0.85)' }}>{user?.nickname ?? user?.username}</Text>
+          <Button type="link" style={{ color: 'rgba(255,255,255,0.85)' }} onClick={() => navigate('/')}>
+            首页
+          </Button>
           <Button type="link" style={{ color: 'rgba(255,255,255,0.85)' }} onClick={() => navigate('/user')}>
             用户中心
           </Button>
