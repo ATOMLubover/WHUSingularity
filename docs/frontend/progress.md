@@ -27,13 +27,12 @@
 | Admin 库存管理 `/admin/stock` | 库存列表 Table、初始化 Modal、变更日志 Modal | `pages/admin/AdminStockList.tsx` |
 | Admin 订单管理 `/admin/orders` | 全部订单列表 Table、userId + status 筛选、分页 | `pages/admin/AdminOrderList.tsx` |
 | WHU 主题 | Ant Design ConfigProvider 配色 | `App.tsx` |
+| WebMCP 集成 | `@mcp-b/webmcp-polyfill` 初始化，4 个业务 tools 注册 | `webmcp/tools.ts`, `main.tsx`, `Home.tsx` |
 | Vite 代理 | `/api/user` → 8090, `/api/order` → 8081, `/api/stock` → 8082 | `vite.config.ts` |
 
 ### 1.2 待实现
 
-| 模块 | 内容 | 依赖后端 |
-|---|---|---|
-| WebMCP 集成 | 浏览器 AI 调用页面 tools | 否 |
+无
 
 ---
 
@@ -69,4 +68,4 @@
 |---|---|---|
 | 6 | **Admin 库存管理** `/admin/stock` | 已完成 |
 | 7 | **Admin 订单管理** `/admin/orders` | 已完成 |
-| 8 | **WebMCP 集成** | 待实现 |
+| 8 | **WebMCP 集成** | 已完成 |

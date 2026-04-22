@@ -4,7 +4,7 @@ import type { ColumnsType } from 'antd/es/table'
 import { useAuth } from '../contexts/AuthContext'
 import { userApi } from '../api/user'
 import { orderApi } from '../api/order'
-import type { UserDetail, Order, OrderListResponse } from '../api/types'
+import type { UserDetail, Order } from '../api/types'
 
 const { Title, Text } = Typography
 

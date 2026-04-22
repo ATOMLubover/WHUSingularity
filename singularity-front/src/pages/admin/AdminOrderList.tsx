@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Table, Form, Input, Select, Button, Space, Tag, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { orderApi } from '../../api/order'
-import type { Order, OrderListResponse } from '../../api/types'
+import type { Order } from '../../api/types'
 
 export default function AdminOrderList() {
   const [orders, setOrders] = useState<Order[]>([])

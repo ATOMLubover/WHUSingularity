@@ -3,6 +3,7 @@ import { Card, Button, Row, Col, Badge, Spin, Alert, Space, Typography, message 
 import { useAuth } from '../contexts/AuthContext'
 import { stockApi } from '../api/stock'
 import { orderApi } from '../api/order'
+import { registerHomeTools, unregisterHomeTools } from '../webmcp/tools'
 import type { Stock } from '../api/types'
 
 const { Title, Text } = Typography
@@ -28,6 +29,11 @@ export default function Home() {
     } catch {
       // fail silently on background poll
     }
+  }, [])
+
+  useEffect(() => {
+    registerHomeTools()
+    return () => unregisterHomeTools()
   }, [])
 
   useEffect(() => {
