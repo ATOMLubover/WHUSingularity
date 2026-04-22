@@ -27,19 +27,19 @@
 
 | 模块 | 内容 | 依赖后端 |
 |---|---|---|
-| 秒杀主页 `/` | 商品列表、库存轮询、抢单按钮、倒计时、结果反馈 | **是** — order/stock Controller |
-| 用户中心 `/user` | 个人信息、余额充值、我的订单、退出登录 | 部分（用户 OK，订单依赖 order 服务） |
-| Admin - 库存管理 `/admin/stock` | 库存列表/初始化/变更日志 | **是** — stock Controller |
-| Admin - 订单管理 `/admin/orders` | 订单列表/筛选 | **是** — order Controller |
+| 秒杀主页 `/` | 商品列表、库存轮询、抢单按钮、倒计时、结果反馈 | 部分（stock OK，order list 已就绪） |
+| 用户中心 `/user` | 个人信息、余额充值、我的订单、退出登录 | 否（user + order list 均就绪） |
+| Admin - 库存管理 `/admin/stock` | 库存列表/初始化/变更日志 | 否（stock Controller 已就绪） |
+| Admin - 订单管理 `/admin/orders` | 订单列表/筛选 | 否（order Controller 已就绪） |
 
 ---
 
 ## 2. 后端阻塞分析
 
-前端秒杀主页和用户中心的核心功能依赖后端尚未暴露的 REST Controller（Service 层已有实现）：
+后端所需 REST Controller 已全部就绪：
 
-- **Order Service**：`POST /api/order/snag`、`GET /api/order/list`
-- **Stock Service**：`GET /api/stock/{productId}`、`GET /api/stock/list`、`POST /api/stock/init`、`GET /api/stock/change-log`
+- **Order Service**：`GET /api/order/list` ✅（支持 `actorId`/`status` 筛选 + 分页）
+- **Stock Service**：`GET /api/stock/{productId}` ✅、`GET /api/stock/list` ✅、`POST /api/stock/init` ✅、`GET /api/stock/change-log` ✅
 
 ---
 
@@ -53,17 +53,17 @@
 | 2 | **Admin 用户管理页** `/admin/users` | ✅ |
 | 3 | **Stock + Order API 客户端** `api/stock.ts` / `api/order.ts` | ✅ |
 
-### Phase 2 — 需后端 Controller 就绪
+### Phase 2 — 后端接口已就绪，可继续前端页面开发
 
 | # | 任务 | 理由 |
 |---|---|---|
-| 4 | **秒杀主页** `/` | 核心业务页面：商品列表、库存轮询（3s）、抢单按钮防重复、倒计时、结果反馈。依赖 order + stock 接口 |
-| 5 | **用户中心** `/user` | 个人信息展示（已可用）+ 余额充值（已可用）+ 我的订单列表（依赖 order 服务） |
+| 4 | **秒杀主页** `/` | 核心业务页面：商品列表、库存轮询（3s）、抢单按钮防重复、倒计时、结果反馈。order + stock 接口已可用 |
+| 5 | **用户中心** `/user` | 个人信息展示（已可用）+ 余额充值（已可用）+ 我的订单列表（order list 接口已可用） |
 
-### Phase 3 — 管理 + 增强（低优先级）
+### Phase 3 — 管理 + 增强（低优先级，后端接口已就绪）
 
 | # | 任务 | 理由 |
 |---|---|---|
-| 6 | **Admin 库存管理** `/admin/stock` | 库存列表、初始化、变更日志 |
-| 7 | **Admin 订单管理** `/admin/orders` | 全部订单查看、筛选 |
+| 6 | **Admin 库存管理** `/admin/stock` | 库存列表、初始化、变更日志（stock Controller 已就绪） |
+| 7 | **Admin 订单管理** `/admin/orders` | 全部订单查看、筛选（order list 接口已就绪） |
 | 8 | **WebMCP 集成** | 增强能力，基础页面稳定后接入（详见 [02-frontend-tech-stack.md §7](02-frontend-tech-stack.md)） |

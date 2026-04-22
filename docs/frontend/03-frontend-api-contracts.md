@@ -333,20 +333,20 @@ Authorization: Bearer <jwt>
 
 - **Method**: `POST`
 - **Path**: `/api/order/snag`
-- **Auth**: 是（userId 从 token 解析）
-- **状态**: **待实现**
+- **Auth**: 是（前端传 userId）
+- **状态**: **已就绪**
 
 **请求体**
 
 ```json
 {
-  "slotId": "PROD_001"
+  "userId": "1001"
 }
 ```
 
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
-| slotId | string | 是 | 商品/槽位 ID |
+| userId | string | 是 | 用户 ID |
 
 **成功响应 200**
 
@@ -355,7 +355,6 @@ Authorization: Bearer <jwt>
   "success": true,
   "data": {
     "orderId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    "slotId": "PROD_001",
     "status": 0
   }
 }
@@ -364,14 +363,13 @@ Authorization: Bearer <jwt>
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | orderId | string | 订单 ID（UUID） |
-| slotId | string | 商品 ID |
 | status | number | 订单状态：0=处理中 |
 
 **失败响应**
 
 | HTTP | code | 含义 |
 |---|---|---|
-| 400 | `REQ_INVALID_PARAM` | slotId 缺失 |
+| 400 | `REQ_INVALID_PARAM` | userId 缺失 |
 | 401 | `AUTH_TOKEN_*` | 未认证 |
 | 409 | `ORDER_STOCK_EMPTY` | 库存不足 |
 | 409 | `ORDER_DUPLICATE` | 重复抢单 |
@@ -603,7 +601,7 @@ Authorization: Bearer <jwt>
 | `GET /api/user/list` | 已就绪 |
 | `PUT /api/user/{id}` | 已就绪 |
 | `DELETE /api/user/{id}` | 已就绪 |
-| `POST /api/order/snag` | **待实现** |
+| `POST /api/order/snag` | 已就绪 |
 | `GET /api/order/list` | **待实现** |
 | `GET /api/stock/{productId}` | **待实现** |
 | `GET /api/stock/list` | **待实现** |
