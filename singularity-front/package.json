@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.1.1",
+    "@mcp-b/webmcp-polyfill": "^2.2.0",
     "antd": "^6.3.6",
     "axios": "^1.15.1",
     "react": "^19.2.5",
@@ -18,6 +20,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@mcp-b/webmcp-types": "^2.2.0",
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

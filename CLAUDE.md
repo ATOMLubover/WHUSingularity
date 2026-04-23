@@ -4,38 +4,47 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-WHUSingularity — 高并发抢单（秒杀）系统框架 + Spring Cloud 微服务实践。核心是 `singularity-core` 自定义的高并发资源分配框架，上层业务为电商秒杀场景。
+WHUSingularity — 高并发抢单（秒杀）系统框架 + Spring Cloud 微服务实践。核心是 `singularity-core` 自定义的高并发资源分配框架，上层业务为电商秒杀场景，配套 React + TypeScript 前端。
 
 ## Tech Stack
 
-- Java 21, Spring Boot 4.0.3, Spring Cloud 2025.0.0
-- Netflix Eureka (服务注册), OpenFeign (服务间调用)
+- Java 21, Spring Boot 3.2.6, Spring Cloud 2023.0.3, Spring Cloud Alibaba 2023.0.3.2
+- Nacos (服务注册与配置中心，替换 Eureka)
+- OpenFeign (服务间调用)
 - MyBatis 3.0.4, MySQL, Redis, RocketMQ 2.3.1
 - Flyway (stock 服务数据库迁移)
+- 前端: React 19 + TypeScript + Vite + Ant Design
 
 ## Build & Run
 
 ```bash
-mvn clean package              # 构建全部
-mvn -pl singularity-user package  # 构建单个模块
-mvn -pl singularity-user test     # 测试单个模块
+mvn clean package -DskipTests    # 构建全部
+mvn -pl singularity-user package # 构建单个模块
+mvn -pl singularity-user test    # 测试单个模块
 mvn test                         # 测试全部
 ```
 
-**启动顺序**: eureka (8761) → user (8090) → order (8081) → stock (8082)
+**启动顺序**: Nacos (8848) → user (8090) → order (8081) → stock (8082)
 
-**基础设施依赖**: MySQL 3306, Redis 6379, RocketMQ NameServer 9876 + Broker 10911
+**基础设施依赖**: MySQL 3306, Redis 6379, Nacos 8848, RocketMQ NameServer 9876 + Broker 10911
 
-**注意**: `singularity-stock` 有独立 pom.xml 但尚未加入父 pom 的 modules 声明。
+**一键开发环境**:
+```bash
+./dev-run.sh   # Docker Compose 拉起 MySQL/Redis/Nacos/RocketMQ + 多实例后端服务
+```
 
 ## Architecture
 
 ```
-singularity-core/    — 核心框架：Allocator/Actor/Slot/Interceptor/ShardPolicy/Registry
-singularity-eureka/  — 服务注册中心
-singularity-user/    — 用户服务：注册/登录/JWT认证/余额管理 (8090)
-singularity-order/   — 订单服务：高并发抢单，依赖 core 框架 (8081)
-singularity-stock/   — 库存服务：库存管理，MQ 驱动，Flyway 迁移 (8082)
+singularity-core/           — 核心框架：Allocator/Actor/Slot/Interceptor/ShardPolicy/Registry
+singularity-eureka/         — 已弃用（Deprecated），由 Nacos 替换，pom.xml 中已注释
+singularity-front/          — 前端：React + TS + Vite + Ant Design
+singularity-user/           — 用户服务：注册/登录/JWT认证/余额管理 (8090)
+singularity-order/          — 订单服务：高并发抢单，依赖 core 框架 (8081)
+singularity-stock/          — 库存服务：库存管理，MQ 驱动，Flyway 迁移 (8082)
+api-integration-tests-python/ — 业务流程 Python 测试脚本
+deploy/                     — Docker Compose 编排文件
+docker/                     — Docker 构建相关
 ```
 
 ### Core Framework (singularity-core)
@@ -50,9 +59,18 @@ singularity-stock/   — 库存服务：库存管理，MQ 驱动，Flyway 迁移
 
 ### Service Communication
 
-- **同步**: OpenFeign（如 Order 调用 User 验证用户）
+- **同步**: OpenFeign + Nacos 服务发现（如 Order 调用 User 验证用户）
 - **异步**: RocketMQ（如 Stock 消费库存更新消息）
 - **认证**: JWT + Redis token blacklist，无状态跨服务
+
+### Configuration Center
+
+业务配置统一托管在 Nacos，启动前需在控制台创建：
+- `singularity-order.yaml` — Redis、RocketMQ、Slot 分槽配置
+- `singularity-user.yaml` — Redis、JWT secret、blacklist 前缀
+- `singularity-stock.yaml` — Redis、RocketMQ consumer 配置
+
+详见 `docs/nacos/README.md`。
 
 ### API Pattern
 

@@ -82,20 +82,19 @@ export interface InitStockRequest {
 // Order
 
 export interface SnagOrderRequest {
-  slotId: string
+  userId: string
 }
 
 export interface SnagOrderResponse {
   orderId: string
-  slotId: string
-  status: number
+  status: string
 }
 
 export interface Order {
   orderId: string
-  actorId: string
+  userId: string
   slotId: string
-  status: number
+  status: string
   createTime: string
 }
 
@@ -109,7 +108,7 @@ export interface OrderListResponse {
 
 export interface OrderListParams {
   actorId?: string
-  status?: number
+  status?: string
   page?: number
   size?: number
 }

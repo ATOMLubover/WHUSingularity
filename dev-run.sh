@@ -14,6 +14,19 @@ if ! docker compose version >/dev/null 2>&1; then
   exit 1
 fi
 
+check_jar() {
+  local jar_path="$1"
+  if [ ! -f "${ROOT_DIR}/${jar_path}" ]; then
+    echo "[ERROR] Jar 包不存在: ${jar_path}"
+    echo "[HINT] 请先执行: mvn clean package -DskipTests"
+    exit 1
+  fi
+}
+
+check_jar "singularity-user/target/singularity-user-1.0-SNAPSHOT.jar"
+check_jar "singularity-order/target/singularity-order-1.0-SNAPSHOT.jar"
+check_jar "singularity-stock/target/singularity-stock-1.0-SNAPSHOT.jar"
+
 wait_http_ok() {
   local url="$1"
   local retries="${2:-60}"
@@ -111,11 +124,11 @@ publish_nacos_config "singularity-order.yaml" "${ORDER_CONFIG}"
 publish_nacos_config "singularity-user.yaml" "${USER_CONFIG}"
 publish_nacos_config "singularity-stock.yaml" "${STOCK_CONFIG}"
 
-echo "[STEP 4/4] 启动后端服务实例 (user/order/stock 各 1 个)..."
+echo "[STEP 4/4] 启动后端服务实例 (user/order/stock 单实例 + 多实例)..."
 docker compose -f "${COMPOSE_FILE}" up -d --force-recreate \
-  singularity-user-1 singularity-user-2 \
-  singularity-order-1 singularity-order-2 \
-  singularity-stock-1 singularity-stock-2
+  singularity-user-0 singularity-user-1 singularity-user-2 \
+  singularity-order-0 singularity-order-1 singularity-order-2 \
+  singularity-stock-0 singularity-stock-1 singularity-stock-2
 
 echo "[DONE] 后端开发环境已拉起"
 echo "查看状态: docker compose -f deploy/docker-compose.backend.yml ps"

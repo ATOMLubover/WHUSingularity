@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -61,6 +62,36 @@ public class OrderController {
         }
         Order order = orderMapper.selectByOrderId(orderId);
         return success(order);
+    }
+
+    @GetMapping("/list")
+    public Map<String, Object> listOrders(
+            @RequestParam(value = "actorId", required = false) String actorId,
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
+        if (size < 1) {
+            size = 10;
+        }
+        if (page < 0) {
+            page = 0;
+        }
+
+        String userId = (actorId == null || actorId.isBlank()) ? null : actorId;
+        String filterStatus = (status == null || status.isBlank()) ? null : status;
+
+        int offset = page * size;
+        List<Order> content = orderMapper.selectList(userId, filterStatus, offset, size);
+        long totalElements = orderMapper.countList(userId, filterStatus);
+        long totalPages = totalElements == 0 ? 0 : (totalElements + size - 1) / size;
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("content", content);
+        data.put("totalElements", totalElements);
+        data.put("totalPages", totalPages);
+        data.put("page", page);
+        data.put("size", size);
+        return success(data);
     }
 
     private Map<String, Object> success(Object data) {

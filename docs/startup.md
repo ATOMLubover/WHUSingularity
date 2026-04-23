@@ -83,3 +83,85 @@ java -jar singularity-order/target/singularity-order-1.0-SNAPSHOT.jar
 - `singularity-stock`
 
 ---
+
+### 4. 初始化库存（Redis 预热）
+
+秒杀扣减走的是 **Redis bucket 库存**，而非数据库 stock 表。启动后必须预热：
+
+```bash
+# bucket-1
+curl -X POST http://localhost:8082/api/stock/slots/preheat \
+  -H "Content-Type: application/json" \
+  -d '{"slotId":"bucket-1","quantity":100,"overwrite":true}'
+
+# bucket-2
+curl -X POST http://localhost:8082/api/stock/slots/preheat \
+  -H "Content-Type: application/json" \
+  -d '{"slotId":"bucket-2","quantity":100,"overwrite":true}'
+```
+
+---
+
+### 5. 测试账户与数据
+
+#### 4.1 预置测试账户
+
+启动后可直接使用以下账户登录（没有的话自己创建，建议如下）：
+
+| 角色 | 用户名 | 密码 | 用途 |
+|---|---|---|---|
+| 普通用户 | `user` | `12345678` | 测试秒杀、用户中心 |
+| 管理员 | `admin` | `admin123456` | 测试管理后台 |
+
+> Admin 账户通过 `/register` 注册后，需在数据库手动改 role：
+> ```sql
+> UPDATE singularity_user.user SET role = 'admin' WHERE username = 'admin';
+> ```
+
+#### 4.2 预置测试商品（库存）
+
+```sql
+USE singularity_stock;
+INSERT INTO stock (product_id, available_quantity, reserved_quantity, total_quantity) VALUES
+('IPHONE_16', 100, 0, 100),
+('PS5_PRO', 50, 0, 50),
+('RTX_5090', 10, 0, 10),
+('SWITCH_2', 30, 0, 30);
+```
+
+#### 4.3 前端开发环境
+
+```bash
+cd singularity-front
+pnpm install
+pnpm dev
+```
+
+Vite 代理已配置（`vite.config.ts`）：
+- `/api/user` → `localhost:8090`
+- `/api/order` → `localhost:8081`
+- `/api/stock` → `localhost:8082`
+
+---
+
+## 已知后端限制
+
+### 1. 订单状态始终为 "CREATED"（处理中）
+
+**现象**：抢单成功后，订单状态一直显示"处理中"，不会变为"成功"或"失败"。
+
+**根因**：`OrderConsumerService` 消费 `order-topic` 消息并将订单落库时，硬编码 `status = "CREATED"`（`singularity-order/.../consumer/OrderConsumerService.java:77`）。当前架构缺少将订单状态推进为 `PAID` 或 `CANCELLED` 的后续机制（没有状态机或二次 MQ 消费来更新订单）。
+
+**影响范围**：前端订单列表、抢单状态轮询均显示"处理中"。
+
+### 2. MySQL 库存表不随抢单扣减
+
+**现象**：`stock` 表的 `available_quantity` 始终等于初始值，抢单后不会减少。
+
+**根因**：抢单流程只通过 Redis Lua 脚本扣减 `stock:bucket-{n}` 的 Redis 库存，但 **没有生产者向 `stock-topic` 发送消息**。`StockConsumer`（`singularity-stock/.../listener/StockConsumer.java`）监听 `stock-topic` 并负责异步落库扣减，但由于从未收到消息，MySQL 库存始终不变。
+
+**影响范围**：管理后台库存列表看到的可用库存是初始化值，非实时值。Redis bucket 库存是真实剩余量（可通过 `redis-cli GET stock:bucket-1` 查看）。
+
+### 3. 订单状态类型与 API 契约不一致
+
+API 契约（`docs/frontend/03-frontend-api-contracts.md`）规定 `status` 为 number（0=处理中, 1=成功, 2=失败），但后端实际返回字符串 `"CREATED"`。前端已做兼容处理：将 `"CREATED"` 视为处理中。

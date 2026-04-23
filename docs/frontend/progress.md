@@ -1,6 +1,8 @@
 # 前端开发进度
 
-> 更新日期：2026-04-21（Phase 1 完成）
+> 更新日期：2026-04-22（Phase 2/3 任务卡已制定）
+>
+> 详细任务卡见 [`0422-phase2-phase3-task-cards.md`](0422-phase2-phase3-task-cards.md)
 
 ## 1. 当前进展
 
@@ -20,26 +22,26 @@
 | 登录页 | 表单校验、错误提示、登录后跳转 | `pages/Login.tsx` |
 | 注册页 | 表单校验（用户名 4-32、密码 8-64）、注册后跳转登录 | `pages/Register.tsx` |
 | Admin 用户管理 | 用户列表 Table + 编辑 Modal + 删除 Popconfirm | `pages/admin/AdminUserList.tsx` |
+| 秒杀主页 `/` | 商品 Card 网格、3s 库存轮询、抢单按钮防重复、订单结果轮询展示 | `pages/Home.tsx` |
+| 用户中心 `/user` | 用户信息卡片、余额充值 Modal、订单列表分页 Table | `pages/UserCenter.tsx` |
+| Admin 库存管理 `/admin/stock` | 库存列表 Table、初始化 Modal、变更日志 Modal | `pages/admin/AdminStockList.tsx` |
+| Admin 订单管理 `/admin/orders` | 全部订单列表 Table、userId + status 筛选、分页 | `pages/admin/AdminOrderList.tsx` |
 | WHU 主题 | Ant Design ConfigProvider 配色 | `App.tsx` |
+| WebMCP 集成 | `@mcp-b/webmcp-polyfill` 初始化，4 个业务 tools 注册 | `webmcp/tools.ts`, `main.tsx`, `Home.tsx` |
 | Vite 代理 | `/api/user` → 8090, `/api/order` → 8081, `/api/stock` → 8082 | `vite.config.ts` |
 
 ### 1.2 待实现
 
-| 模块 | 内容 | 依赖后端 |
-|---|---|---|
-| 秒杀主页 `/` | 商品列表、库存轮询、抢单按钮、倒计时、结果反馈 | **是** — order/stock Controller |
-| 用户中心 `/user` | 个人信息、余额充值、我的订单、退出登录 | 部分（用户 OK，订单依赖 order 服务） |
-| Admin - 库存管理 `/admin/stock` | 库存列表/初始化/变更日志 | **是** — stock Controller |
-| Admin - 订单管理 `/admin/orders` | 订单列表/筛选 | **是** — order Controller |
+无
 
 ---
 
 ## 2. 后端阻塞分析
 
-前端秒杀主页和用户中心的核心功能依赖后端尚未暴露的 REST Controller（Service 层已有实现）：
+后端所需 REST Controller 已全部就绪：
 
-- **Order Service**：`POST /api/order/snag`、`GET /api/order/list`
-- **Stock Service**：`GET /api/stock/{productId}`、`GET /api/stock/list`、`POST /api/stock/init`、`GET /api/stock/change-log`
+- **Order Service**：`GET /api/order/list` ✅（支持 `actorId`/`status` 筛选 + 分页）
+- **Stock Service**：`GET /api/stock/{productId}` ✅、`GET /api/stock/list` ✅、`POST /api/stock/init` ✅、`GET /api/stock/change-log` ✅
 
 ---
 
@@ -53,17 +55,68 @@
 | 2 | **Admin 用户管理页** `/admin/users` | ✅ |
 | 3 | **Stock + Order API 客户端** `api/stock.ts` / `api/order.ts` | ✅ |
 
-### Phase 2 — 需后端 Controller 就绪
+### Phase 2 — 后端接口已就绪，可继续前端页面开发
 
-| # | 任务 | 理由 |
+| # | 任务 | 状态 |
 |---|---|---|
-| 4 | **秒杀主页** `/` | 核心业务页面：商品列表、库存轮询（3s）、抢单按钮防重复、倒计时、结果反馈。依赖 order + stock 接口 |
-| 5 | **用户中心** `/user` | 个人信息展示（已可用）+ 余额充值（已可用）+ 我的订单列表（依赖 order 服务） |
+| 4 | **秒杀主页** `/` | 已完成 |
+| 5 | **用户中心** `/user` | 已完成 |
 
-### Phase 3 — 管理 + 增强（低优先级）
+### Phase 3 — 管理 + 增强（低优先级，后端接口已就绪）
 
-| # | 任务 | 理由 |
+| # | 任务 | 状态 |
 |---|---|---|
-| 6 | **Admin 库存管理** `/admin/stock` | 库存列表、初始化、变更日志 |
-| 7 | **Admin 订单管理** `/admin/orders` | 全部订单查看、筛选 |
-| 8 | **WebMCP 集成** | 增强能力，基础页面稳定后接入（详见 [02-frontend-tech-stack.md §7](02-frontend-tech-stack.md)） |
+| 6 | **Admin 库存管理** `/admin/stock` | 已完成 |
+| 7 | **Admin 订单管理** `/admin/orders` | 已完成 |
+| 8 | **WebMCP 集成** | 已完成 |
+
+---
+
+## 4. 测试验收结果（2026-04-22）
+
+### Task 4 — 秒杀主页 `/`
+
+| 验收项 | 结果 | 备注 |
+|---|---|---|
+| 商品列表正确展示 | 通过 | 3s 轮询刷新正常 |
+| 抢单按钮 loading 态 + 防重复 | 通过 | 快速连击只发一次请求 |
+| 抢单结果反馈 | 通过 | 成功/失败提示明确 |
+| 订单状态轮询 | 通过 | 2s 轮询正常触发 |
+| **已知限制** | — | 订单状态始终为 `CREATED`（后端缺状态更新机制），见 `docs/startup.md` |
+
+### Task 5 — 用户中心 `/user`
+
+| 验收项 | 结果 | 备注 |
+|---|---|---|
+| 用户中心入口可见 | 通过 | AppLayout 顶栏已添加 |
+| 用户信息/余额展示 | 通过 | 数据正确 |
+| 充值 Modal | 通过 | 金额输入 + API 调用正常 |
+| 订单列表分页 | 通过 | 已修复 0/1 起始页码偏移 |
+
+### Task 6 — Admin 库存管理 `/admin/stock`
+
+| 验收项 | 结果 | 备注 |
+|---|---|---|
+| 库存列表展示 | 通过 | 四列数据正确 |
+| 初始化库存 | 通过 | 新记录刷新正常，重复初始化报 `STOCK_ALREADY_EXISTS` |
+| 变更日志 | 通过 | 按 `productId` 过滤展示 |
+| **已知限制** | — | MySQL `stock` 表不随抢单扣减（后端缺 `stock-topic` 生产者），见 `docs/startup.md` |
+
+### Task 7 — Admin 订单管理 `/admin/orders`
+
+| 验收项 | 结果 | 备注 |
+|---|---|---|
+| 全部订单列表 | 通过 | 不分用户展示全部订单 |
+| 分页 | 通过 | 已修复 0/1 起始页码偏移 |
+| userId 筛选 | 通过 | 输入后结果正确过滤 |
+| status 筛选 | 通过 | 下拉选择后结果正确过滤 |
+| 组合筛选 + 重置 | 通过 | 同时生效，重置恢复全部 |
+
+### Task 8 — WebMCP 集成
+
+| 验收项 | 结果 | 备注 |
+|---|---|---|
+| polyfill 加载 | 通过 | 无报错 |
+| 4 个 tools 注册 | 通过 | `listOrders`、`getUserInfo`、`listStock`、`snagOrder` |
+| 业务 tool 调用 | 通过 | `listStock` 端到端调用成功并返回数据 |
+| 常规 UI 不受影响 | 通过 | — |
