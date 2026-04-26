@@ -1,5 +1,6 @@
 package com.lubover.singularity.product.service.impl;
 
+import com.lubover.singularity.product.cache.ProductCacheService;
 import com.lubover.singularity.product.dto.CreateProductRequest;
 import com.lubover.singularity.product.dto.PageResponse;
 import com.lubover.singularity.product.dto.ProductView;
@@ -9,6 +10,8 @@ import com.lubover.singularity.product.exception.BusinessException;
 import com.lubover.singularity.product.exception.ErrorCode;
 import com.lubover.singularity.product.mapper.ProductMapper;
 import com.lubover.singularity.product.service.ProductService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,13 +23,17 @@ import java.util.stream.Collectors;
 @Service
 public class ProductServiceImpl implements ProductService {
 
+    private static final Logger log = LoggerFactory.getLogger(ProductServiceImpl.class);
+
     private static final int STATUS_OFFLINE = 0;
     private static final int STATUS_ONLINE = 1;
 
     private final ProductMapper productMapper;
+    private final ProductCacheService cacheService;
 
-    public ProductServiceImpl(ProductMapper productMapper) {
+    public ProductServiceImpl(ProductMapper productMapper, ProductCacheService cacheService) {
         this.productMapper = productMapper;
+        this.cacheService = cacheService;
     }
 
     @Override
@@ -54,17 +61,39 @@ public class ProductServiceImpl implements ProductService {
             throw new BusinessException(ErrorCode.PRODUCT_ALREADY_EXISTS, "productId already exists");
         }
 
-        return ProductView.from(productMapper.selectByProductId(product.getProductId()));
+        ProductView view = ProductView.from(productMapper.selectByProductId(product.getProductId()));
+        // 新增后写入 detail 缓存，并失效所有 list 缓存
+        cacheService.putDetail(view.getProductId(), view);
+        cacheService.evictAllLists();
+        return view;
     }
 
     @Override
     public ProductView getByProductId(String productId) {
         validateProductId(productId);
-        Product product = productMapper.selectByProductId(productId.trim());
+        String key = productId.trim();
+
+        // 1. 读缓存（两级）
+        ProductView cached = cacheService.getDetail(key);
+        if (cached != null) {
+            return cached;
+        }
+        // 命中空标记（防穿透）：getDetail 返回 null 并非一定是 miss，
+        // 需要区分"空标记命中"与"完全未命中"。
+        // ProductCacheService 内部统一返回 null 表示两种情况；
+        // 这里直接走 DB，若 DB 也无记录则缓存空值。
+
+        // 2. 查 DB
+        Product product = productMapper.selectByProductId(key);
         if (product == null) {
+            // 缓存空值防穿透
+            cacheService.putDetail(key, null);
             throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND);
         }
-        return ProductView.from(product);
+
+        ProductView view = ProductView.from(product);
+        cacheService.putDetail(key, view);
+        return view;
     }
 
     @Override
@@ -92,7 +121,12 @@ public class ProductServiceImpl implements ProductService {
             throw new BusinessException(ErrorCode.INTERNAL_ERROR, "update product failed");
         }
 
-        return ProductView.from(productMapper.selectByProductId(productId.trim()));
+        ProductView view = ProductView.from(productMapper.selectByProductId(productId.trim()));
+        // 写后删除缓存（Cache-Aside write path）
+        cacheService.evictDetail(productId.trim());
+        cacheService.evictAllLists();
+        log.info("product updated and cache evicted: productId={}", productId.trim());
+        return view;
     }
 
     @Override
@@ -103,6 +137,9 @@ public class ProductServiceImpl implements ProductService {
         if (affected <= 0) {
             throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND);
         }
+        cacheService.evictDetail(productId.trim());
+        cacheService.evictAllLists();
+        log.info("product deleted and cache evicted: productId={}", productId.trim());
     }
 
     @Override
@@ -111,17 +148,32 @@ public class ProductServiceImpl implements ProductService {
 
         int normalizedPageNo = Math.max(pageNo, 1);
         int normalizedPageSize = Math.min(Math.max(pageSize, 1), 100);
-        int offset = (normalizedPageNo - 1) * normalizedPageSize;
         String normalizedCategory = trimToNull(category);
         String normalizedKeyword = trimToNull(keyword);
 
-        List<ProductView> views = productMapper.selectList(status, normalizedCategory, normalizedKeyword, offset, normalizedPageSize)
+        String queryHash = ProductCacheService.buildListHash(status, normalizedCategory, normalizedKeyword, normalizedPageNo, normalizedPageSize);
+
+        // 1. 读缓存
+        PageResponse<ProductView> cached = cacheService.getList(queryHash);
+        if (cached != null) {
+            return cached;
+        }
+
+        // 2. 查 DB
+        int offset = (normalizedPageNo - 1) * normalizedPageSize;
+        List<ProductView> views = productMapper
+                .selectList(status, normalizedCategory, normalizedKeyword, offset, normalizedPageSize)
                 .stream()
                 .map(ProductView::from)
                 .collect(Collectors.toList());
         long total = productMapper.countList(status, normalizedCategory, normalizedKeyword);
-        return PageResponse.of(views, total, normalizedPageNo, normalizedPageSize);
+        PageResponse<ProductView> page = PageResponse.of(views, total, normalizedPageNo, normalizedPageSize);
+
+        cacheService.putList(queryHash, page);
+        return page;
     }
+
+    // ── Validation ────────────────────────────────────────────────────────────
 
     private void validateCreateRequest(CreateProductRequest request) {
         if (request == null) {
