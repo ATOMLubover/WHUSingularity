@@ -17,13 +17,14 @@
         <spring-cloud.version>2023.0.3</spring-cloud.version>
         <spring-cloud-alibaba.version>2023.0.3.2</spring-cloud-alibaba.version>
     </properties>
-    
+
     <modules>
         <module>singularity-core</module>
         <!-- <module>singularity-eureka</module> -->  <!-- Deprecated: replaced by Nacos -->
         <module>singularity-user</module>
         <module>singularity-order</module>
         <module>singularity-stock</module>
+        <module>singularity-merchant</module>
         <module>singularity-product</module>
     </modules>
 
@@ -37,7 +38,7 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            
+
             <!-- Spring Cloud BOM -->
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
@@ -46,7 +47,7 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            
+
             <!-- Spring Cloud Alibaba BOM (Nacos) -->
             <dependency>
                 <groupId>com.alibaba.cloud</groupId>
@@ -55,14 +56,14 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            
+
             <!-- MyBatis -->
             <dependency>
                 <groupId>org.mybatis.spring.boot</groupId>
                 <artifactId>mybatis-spring-boot-starter</artifactId>
                 <version>3.0.4</version>
             </dependency>
-            
+
             <!-- RocketMQ -->
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>

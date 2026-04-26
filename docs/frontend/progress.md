@@ -34,6 +34,16 @@
 
 无
 
+### 1.3 前端适配后端实际行为（2026-04-23）
+
+> 详见 `docs/frontend/03-frontend-api-contracts.md` 第 6 章"与后端实现不一致之处"
+
+| 改动 | 涉及文件 | 说明 |
+|---|---|---|
+| 订单状态字符串对齐 | `Home.tsx`, `UserCenter.tsx`, `AdminOrderList.tsx` | `'0'`/`'1'`/`'2'` → `'CREATED'`/`'PAID'`/`'CANCELLED'` |
+| `SnagOrderResponse` 去掉 `status` | `api/types.ts` | 后端抢单接口不返回 `status` |
+| `Order` 类型补充字段 | `api/types.ts` | 加 `productId`、`updateTime` |
+
 ---
 
 ## 2. 后端阻塞分析
@@ -100,7 +110,7 @@
 | 库存列表展示 | 通过 | 四列数据正确 |
 | 初始化库存 | 通过 | 新记录刷新正常，重复初始化报 `STOCK_ALREADY_EXISTS` |
 | 变更日志 | 通过 | 按 `productId` 过滤展示 |
-| **已知限制** | — | MySQL `stock` 表不随抢单扣减（后端缺 `stock-topic` 生产者），见 `docs/startup.md` |
+| **已知限制** | — | 无（抢单后库存已通过 `order-topic` 异步扣减并落库） |
 
 ### Task 7 — Admin 订单管理 `/admin/orders`
 
