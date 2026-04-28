@@ -1,0 +1,29 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: user-route
+          uri: lb://singularity-user
+          predicates:
+            - Path=/api/user/**
+        - id: order-route
+          uri: lb://singularity-order
+          predicates:
+            - Path=/api/order/**
+        - id: stock-route
+          uri: lb://singularity-stock
+          predicates:
+            - Path=/api/stock/**
+        - id: product-route
+          uri: lb://singularity-product
+          predicates:
+            - Path=/api/product/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
