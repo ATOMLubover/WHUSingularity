@@ -330,6 +330,28 @@ services:
       - nacos
     ports:
       - "8087:8087"
+
+  singularity-gateway-0:
+    image: maven:3.9.9-eclipse-temurin-21
+    container_name: singularity-gateway-0
+    restart: unless-stopped
+    working_dir: /workspace
+    command: sh -c "java -jar singularity-gateway/target/singularity-gateway-1.0-SNAPSHOT.jar"
+    environment:
+      SPRING_CLOUD_NACOS_SERVER_ADDR: nacos:8848
+      SERVER_PORT: "8080"
+    volumes:
+      - ../:/workspace
+      - maven_repo:/root/.m2
+    depends_on:
+      - nacos
+      - singularity-user-0
+      - singularity-order-0
+      - singularity-stock-0
+      - singularity-product-0
+    ports:
+      - "8080:8080"
+
   singularity-front:
     build:
       context: ../singularity-front

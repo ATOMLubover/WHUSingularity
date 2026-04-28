@@ -1,4 +1,4 @@
-﻿# Docker 弹性伸缩脚本说明
+# Docker 弹性伸缩脚本说明
 
 本文档说明 `deploy/` 目录下与容器弹性伸缩相关的脚本用法，供上层 autoscaler 服务或手动运维调用。
 
@@ -24,6 +24,10 @@
 - `deploy/start-next-stock-instance.ps1`
 - `deploy/remove-last-stock-instance.ps1`
 
+#### product
+- `deploy/start-next-product-instance.ps1`
+- `deploy/remove-last-product-instance.ps1`
+
 ---
 
 ## 2. 统一入口参数
@@ -37,7 +41,7 @@ powershell -ExecutionPolicy Bypass -File .\deploy\scale-instance.ps1 \
 
 参数说明：
 
-- `-Service`（必填）：`order | user | stock`
+- `-Service`（必填）：`order | user | stock | product`
 - `-Action`（必填）：`start | remove`
 - `-Index`（可选）：指定实例编号
   - `start`：不传则自动取下一个可用编号
@@ -124,7 +128,7 @@ docker compose -f deploy/docker-compose.backend.yml up -d
 - 对应服务 jar 已提前构建（脚本不会自动编译）：
 
 ```powershell
-mvn -pl singularity-order,singularity-user,singularity-stock -am clean package -DskipTests
+mvn -pl singularity-order,singularity-user,singularity-stock,singularity-product -am clean package -DskipTests
 ```
 
 ---
@@ -134,6 +138,7 @@ mvn -pl singularity-order,singularity-user,singularity-stock -am clean package -
 - `order`：从 `8081` 开始按奇数扫描可用端口
 - `user`：从 `8093` 开始扫描可用端口
 - `stock`：从 `8087` 开始扫描可用端口
+- `product`：从 `8089` 开始扫描可用端口
 
 如果需要固定策略（例如仅允许某个端口池），建议上层服务显式传入 `-Port`。
 
