@@ -31,3 +31,14 @@ management:
     export:
       prometheus:
         enabled: true
+
+singularity:
+  gateway:
+    trace-header:
+      enabled: false
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway: WARN
+    reactor.netty: WARN
