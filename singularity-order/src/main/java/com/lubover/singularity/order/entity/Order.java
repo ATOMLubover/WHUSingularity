@@ -28,6 +28,11 @@ public class Order {
     private String productId;
 
     /**
+     * 订单金额（下单时商品单价快照）
+     */
+    private java.math.BigDecimal amount;
+
+    /**
      * 订单状态: CREATED-已创建, PAID-已支付, CANCELLED-已取消
      */
     private String status;
@@ -94,6 +99,14 @@ public class Order {
         this.productId = productId;
     }
 
+    public java.math.BigDecimal getAmount() {
+        return amount;
+    }
+
+    public void setAmount(java.math.BigDecimal amount) {
+        this.amount = amount;
+    }
+
     public LocalDateTime getCreateTime() {
         return createTime;
     }
@@ -117,6 +130,7 @@ public class Order {
                 ", userId='" + userId + '\'' +
                 ", slotId='" + slotId + '\'' +
                 ", productId='" + productId + '\'' +
+                ", amount=" + amount +
                 ", status='" + status + '\'' +
                 ", createTime=" + createTime +
                 ", updateTime=" + updateTime +

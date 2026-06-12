@@ -3,6 +3,8 @@ package com.lubover.singularity.order.feign;
 import java.util.Map;
 
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -14,4 +16,7 @@ public interface MerchantClient {
 
     @PostMapping("/api/merchant/internal/deduct-balance")
     Map<String, Object> deductBalance(@RequestBody Map<String, Object> body);
+
+    @GetMapping("/api/merchant/internal/product-owner/{productId}")
+    Map<String, Object> getProductOwner(@PathVariable("productId") String productId);
 }

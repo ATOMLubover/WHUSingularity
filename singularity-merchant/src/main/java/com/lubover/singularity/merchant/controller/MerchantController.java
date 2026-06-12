@@ -126,6 +126,18 @@ public class MerchantController {
         }
     }
 
+    @GetMapping("/internal/product-owner/{productId}")
+    public ApiResponse<Map<String, Long>> getProductOwner(@PathVariable("productId") String productId) {
+        if (productId == null || productId.isBlank()) {
+            return ApiResponse.failure("INVALID_PARAM", "productId is required");
+        }
+        Long merchantId = merchantProductMapper.selectMerchantIdByProductId(productId.trim());
+        if (merchantId == null) {
+            return ApiResponse.failure("NOT_FOUND", "No merchant found for product: " + productId);
+        }
+        return ApiResponse.success(Map.of("merchantId", merchantId));
+    }
+
     private MerchantView convertToView(Merchant merchant) {
         MerchantView view = new MerchantView();
         view.setId(merchant.getId());

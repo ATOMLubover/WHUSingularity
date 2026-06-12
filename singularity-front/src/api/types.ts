@@ -95,6 +95,7 @@ export interface Order {
   userId: string
   productId: string
   slotId: string
+  amount?: number | null
   status: string
   createTime: string
   updateTime: string

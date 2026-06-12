@@ -78,6 +78,65 @@ public class StockController {
         }
     }
 
+    @PostMapping("/reset")
+    public Map<String, Object> resetStock(@RequestBody Map<String, Object> request) {
+        String productId = request.get("productId") == null ? null : String.valueOf(request.get("productId"));
+        Long totalQuantity = null;
+        Object totalQuantityRaw = request.get("totalQuantity");
+        if (totalQuantityRaw != null) {
+            try {
+                totalQuantity = Long.valueOf(String.valueOf(totalQuantityRaw));
+            } catch (NumberFormatException ignored) {
+                return failure("totalQuantity must be a number");
+            }
+        }
+
+        if (productId == null || productId.isBlank()) {
+            return failure("productId is required");
+        }
+        if (totalQuantity == null) {
+            return failure("totalQuantity is required");
+        }
+
+        try {
+            stockService.resetStock(productId.trim(), totalQuantity);
+            return success(Map.of("productId", productId, "totalQuantity", totalQuantity));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return failure(e.getMessage());
+        }
+    }
+
+    @PostMapping("/internal/deduct-for-order")
+    public Map<String, Object> deductForOrder(@RequestBody Map<String, Object> request) {
+        String productId = request.get("productId") == null ? null : String.valueOf(request.get("productId"));
+        String orderId = request.get("orderId") == null ? null : String.valueOf(request.get("orderId"));
+        Long quantity = 1L;
+        Object quantityRaw = request.get("quantity");
+        if (quantityRaw != null) {
+            try {
+                quantity = Long.valueOf(String.valueOf(quantityRaw));
+            } catch (NumberFormatException ignored) {
+                return failure("quantity must be a number");
+            }
+        }
+
+        if (productId == null || productId.isBlank()) {
+            return failure("productId is required");
+        }
+        if (orderId == null || orderId.isBlank()) {
+            return failure("orderId is required");
+        }
+        if (quantity <= 0) {
+            return failure("quantity must be positive");
+        }
+
+        boolean ok = stockService.deductStock(productId.trim(), quantity, orderId.trim(), orderId.trim());
+        if (ok) {
+            return success(Map.of("productId", productId, "orderId", orderId, "quantity", quantity));
+        }
+        return failure("stock deduct failed");
+    }
+
     @GetMapping("/change-log")
     public Map<String, Object> getChangeLogs(
             @RequestParam(value = "productId", required = false) String productId,

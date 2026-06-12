@@ -9,6 +9,7 @@ public class OrderMessage {
     private String userId;
     private String slotId;
     private LocalDateTime createTime;
+    private java.math.BigDecimal amount;
     /** 风控风险评分 (0.0~1.0)，由 FraudDetectionInterceptor 写入 */
     private Double riskScore;
 
@@ -50,6 +51,14 @@ public class OrderMessage {
 
     public void setCreateTime(LocalDateTime createTime) {
         this.createTime = createTime;
+    }
+
+    public java.math.BigDecimal getAmount() {
+        return amount;
+    }
+
+    public void setAmount(java.math.BigDecimal amount) {
+        this.amount = amount;
     }
 
     public Double getRiskScore() {

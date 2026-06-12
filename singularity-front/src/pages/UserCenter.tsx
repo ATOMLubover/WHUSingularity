@@ -235,6 +235,8 @@ export default function UserCenter() {
       render: (v: string, record: Order) => {
         if (v === 'PAID') return <Tag color="success">已支付</Tag>
         if (v === 'CANCELLED') return <Tag color="error">已取消</Tag>
+        const payAmount = record.amount ?? productMap[record.productId]?.price
+        const payLabel = payAmount != null ? `立即支付 ¥${Number(payAmount).toFixed(2)}` : '立即支付'
         return (
           <Space>
             <Tag color="processing">待支付</Tag>
@@ -245,7 +247,7 @@ export default function UserCenter() {
               disabled={payingOrderId !== null && payingOrderId !== record.orderId}
               onClick={() => handlePay(record.orderId)}
             >
-              立即支付 ¥99
+              {payLabel}
             </Button>
           </Space>
         )

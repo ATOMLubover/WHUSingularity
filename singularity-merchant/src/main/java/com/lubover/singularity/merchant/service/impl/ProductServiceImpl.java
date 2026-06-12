@@ -59,15 +59,17 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
-    private void initSlotAndRedis(String productId, Long totalQuantity) {
+    private void initSlotAndRedis(String productId, Long totalQuantity, boolean resetRedis) {
         String slotId = "slot-" + productId;
         String redisKey = "stock:" + slotId;
 
         try {
-            redisTemplate.opsForValue().set(redisKey, String.valueOf(totalQuantity));
+            if (resetRedis || !Boolean.TRUE.equals(redisTemplate.hasKey(redisKey))) {
+                redisTemplate.opsForValue().set(redisKey, String.valueOf(totalQuantity));
+                System.out.println("Redis stock bucket initialized: " + redisKey + " = " + totalQuantity);
+            }
             redisTemplate.opsForHash().put("slot-meta:" + slotId, "productId", productId);
             redisTemplate.opsForHash().put("slot-meta:" + slotId, "redisKey", redisKey);
-            System.out.println("Redis stock bucket initialized: " + redisKey + " = " + totalQuantity);
         } catch (Exception e) {
             System.err.println("Failed to init Redis stock bucket: " + redisKey + ", error: " + e.getMessage());
         }
@@ -128,7 +130,7 @@ public class ProductServiceImpl implements ProductService {
                 System.err.println("Failed to init stock for product: " + productView.getProductId() + ", error: " + e.getMessage());
             }
 
-            initSlotAndRedis(productView.getProductId(), totalQuantity);
+            initSlotAndRedis(productView.getProductId(), totalQuantity, true);
         }
 
         return productView;
@@ -159,24 +161,35 @@ public class ProductServiceImpl implements ProductService {
         productView.setMerchantStatus(merchantProduct.getStatus());
         productView.setSortOrder(merchantProduct.getSortOrder());
 
-        if (totalQuantity != null && totalQuantity > 0) {
-            try {
-                Map<String, Object> initReq = new HashMap<>();
-                initReq.put("productId", productId);
-                initReq.put("totalQuantity", totalQuantity);
-                stockServiceClient.initStock(initReq);
-                productView.setTotalQuantity(totalQuantity);
-                productView.setAvailableQuantity(totalQuantity);
-            } catch (Exception e) {
-                System.err.println("Failed to update stock for product: " + productId + ", error: " + e.getMessage());
-            }
-
-            initSlotAndRedis(productId, totalQuantity);
+        if (totalQuantity != null && totalQuantity >= 0) {
+            syncStock(productId, totalQuantity, productView);
         } else {
             fillStockInfo(productView);
         }
 
         return productView;
+    }
+
+    private void syncStock(String productId, Long totalQuantity, ProductView productView) {
+        try {
+            Map<String, Object> stockReq = new HashMap<>();
+            stockReq.put("productId", productId);
+            stockReq.put("totalQuantity", totalQuantity);
+            Map<String, Object> stockResp = stockServiceClient.resetStock(stockReq);
+            if (stockResp == null || !Boolean.TRUE.equals(stockResp.get("success"))) {
+                String msg = stockResp != null && stockResp.get("message") != null
+                        ? String.valueOf(stockResp.get("message"))
+                        : "更新库存失败";
+                throw new BusinessException(ErrorCode.INTERNAL_ERROR, msg);
+            }
+            productView.setTotalQuantity(totalQuantity);
+            productView.setAvailableQuantity(totalQuantity);
+            initSlotAndRedis(productId, totalQuantity, true);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "更新库存失败: " + e.getMessage());
+        }
     }
 
     @Override

@@ -39,7 +39,11 @@ public class OrderTopicConsumer implements RocketMQListener<MessageExt> {
                 return;
             }
 
-            boolean result = stockService.deductStock(message.getProductId(), 1L, message.getOrderId(), messageId);
+            boolean result = stockService.deductStock(
+                    message.getProductId(),
+                    1L,
+                    message.getOrderId(),
+                    resolveIdempotencyKey(message.getOrderId(), messageId));
             if (result) {
                 logger.info("order-topic扣库存成功: orderId={}, productId={}, messageId={}",
                         message.getOrderId(), message.getProductId(), messageId);
@@ -72,5 +76,13 @@ public class OrderTopicConsumer implements RocketMQListener<MessageExt> {
             return false;
         }
         return trimmed.matches("^[0-9a-fA-F-]{16,64}$");
+    }
+
+    /** 与支付扣库存共用 orderId，避免 MQ 与同步扣减重复入账。 */
+    private String resolveIdempotencyKey(String orderId, String messageId) {
+        if (orderId != null && !orderId.isBlank()) {
+            return orderId.trim();
+        }
+        return messageId;
     }
 }

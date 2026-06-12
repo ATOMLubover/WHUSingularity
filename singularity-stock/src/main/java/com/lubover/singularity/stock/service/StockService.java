@@ -37,4 +37,9 @@ public interface StockService {
      * 初始化商品库存
      */
     void initializeStock(String productId, Long totalQuantity);
+
+    /**
+     * 覆盖商品库存（商户编辑库存时使用）
+     */
+    void resetStock(String productId, Long totalQuantity);
 }
