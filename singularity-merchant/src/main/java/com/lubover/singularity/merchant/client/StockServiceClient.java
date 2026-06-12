@@ -12,6 +12,9 @@ public interface StockServiceClient {
     @PostMapping("/api/stock/init")
     Map<String, Object> initStock(@RequestBody Map<String, Object> request);
 
+    @PostMapping("/api/stock/reset")
+    Map<String, Object> resetStock(@RequestBody Map<String, Object> request);
+
     @GetMapping("/api/stock/{productId}")
     Map<String, Object> getStock(@PathVariable("productId") String productId);
 }

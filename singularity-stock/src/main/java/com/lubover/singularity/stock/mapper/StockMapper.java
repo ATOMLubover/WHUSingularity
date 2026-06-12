@@ -50,6 +50,12 @@ public interface StockMapper {
                             @Param("quantity") Long quantity);
 
     /**
+     * 商户覆盖库存：重置总库存、可用库存，并清零预占。
+     */
+    int resetStockQuantity(@Param("productId") String productId,
+                           @Param("totalQuantity") Long totalQuantity);
+
+    /**
      * 查询全部库存记录
      */
     List<Stock> selectAll();

@@ -41,6 +41,7 @@ public class OrderConsumerService implements RocketMQListener<OrderMessage> {
             order.setOrderId(orderId);
             order.setUserId(message.getUserId());
             order.setProductId(message.getProductId());
+            order.setAmount(message.getAmount());
             order.setSlotId(message.getSlotId());
             order.setStatus("CREATED");
             order.setCreateTime(message.getCreateTime() != null ? message.getCreateTime() : LocalDateTime.now());

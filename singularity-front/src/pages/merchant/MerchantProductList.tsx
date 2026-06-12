@@ -64,7 +64,7 @@ export default function MerchantProductList() {
       price: product.price,
       category: product.category ?? undefined,
       tags: product.tags ?? undefined,
-      totalQuantity: product.totalQuantity ?? undefined,
+      totalQuantity: product.availableQuantity ?? product.totalQuantity ?? undefined,
     })
     setModalVisible(true)
   }

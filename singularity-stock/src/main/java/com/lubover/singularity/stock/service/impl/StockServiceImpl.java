@@ -133,6 +133,33 @@ public class StockServiceImpl implements StockService {
         stockMapper.insert(stock);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void resetStock(String productId, Long totalQuantity) {
+        Objects.requireNonNull(productId, "productId不能为空");
+        Objects.requireNonNull(totalQuantity, "totalQuantity不能为空");
+        if (productId.isBlank()) {
+            throw new IllegalArgumentException("productId不能为空字符串");
+        }
+        if (totalQuantity < 0) {
+            throw new IllegalArgumentException("totalQuantity不能为负数");
+        }
+
+        Stock existing = stockMapper.selectByProductId(productId);
+        if (existing == null) {
+            if (totalQuantity == 0) {
+                throw new IllegalArgumentException("商品库存不存在: " + productId);
+            }
+            initializeStock(productId, totalQuantity);
+            return;
+        }
+
+        int affected = stockMapper.resetStockQuantity(productId, totalQuantity);
+        if (affected != 1) {
+            throw new IllegalStateException("重置库存失败: " + productId);
+        }
+    }
+
     private void validateParams(String productId, Long quantity, String messageId) {
         Objects.requireNonNull(productId, "productId不能为空");
         Objects.requireNonNull(quantity, "quantity不能为空");

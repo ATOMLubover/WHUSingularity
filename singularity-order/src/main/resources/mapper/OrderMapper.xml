@@ -9,18 +9,19 @@
         <result column="user_id" property="userId" jdbcType="VARCHAR"/>
         <result column="slot_id" property="slotId" jdbcType="VARCHAR"/>
         <result column="product_id" property="productId" jdbcType="VARCHAR"/>
+        <result column="amount" property="amount" jdbcType="DECIMAL"/>
         <result column="status" property="status" jdbcType="VARCHAR"/>
         <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
         <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
     </resultMap>
 
     <insert id="insert" parameterType="com.lubover.singularity.order.entity.Order">
-        INSERT INTO `order` (order_id, user_id, slot_id, product_id, status, create_time, update_time)
-        VALUES (#{orderId}, #{userId}, #{slotId}, #{productId}, #{status}, #{createTime}, #{updateTime})
+        INSERT INTO `order` (order_id, user_id, slot_id, product_id, amount, status, create_time, update_time)
+        VALUES (#{orderId}, #{userId}, #{slotId}, #{productId}, #{amount}, #{status}, #{createTime}, #{updateTime})
     </insert>
 
     <select id="selectByOrderId" resultMap="BaseResultMap">
-        SELECT order_id, user_id, slot_id, product_id, status, create_time, update_time
+        SELECT order_id, user_id, slot_id, product_id, amount, status, create_time, update_time
         FROM `order`
         WHERE order_id = #{orderId}
     </select>
@@ -32,7 +33,7 @@
     </update>
 
     <select id="selectList" resultMap="BaseResultMap">
-        SELECT order_id, user_id, slot_id, product_id, status, create_time, update_time
+        SELECT order_id, user_id, slot_id, product_id, amount, status, create_time, update_time
         FROM `order`
         <where>
             <if test="userId != null and userId != ''">
@@ -60,7 +61,7 @@
     </select>
 
     <select id="selectByProductIds" resultMap="BaseResultMap">
-        SELECT order_id, user_id, slot_id, product_id, status, create_time, update_time
+        SELECT order_id, user_id, slot_id, product_id, amount, status, create_time, update_time
         FROM `order`
         <where>
             <if test="productIds != null and productIds.size() > 0">

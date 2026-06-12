@@ -64,4 +64,14 @@
         WHERE product_id = #{productId} AND reserved_quantity >= #{quantity}
     </update>
 
+    <update id="resetStockQuantity">
+        UPDATE stock
+        SET total_quantity = #{totalQuantity},
+            available_quantity = #{totalQuantity},
+            reserved_quantity = 0,
+            version = version + 1,
+            update_time = NOW()
+        WHERE product_id = #{productId}
+    </update>
+
 </mapper>

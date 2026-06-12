@@ -41,6 +41,8 @@ import com.lubover.singularity.api.impl.DefaultAllocator;
 import com.lubover.singularity.order.dto.OrderMessage;
 import com.lubover.singularity.order.entity.Order;
 import com.lubover.singularity.order.feign.MerchantClient;
+import com.lubover.singularity.order.feign.ProductClient;
+import com.lubover.singularity.order.feign.StockClient;
 import com.lubover.singularity.order.feign.UserClient;
 import com.lubover.singularity.order.mapper.OrderMapper;
 import com.lubover.singularity.order.registry.SlotRegistry;
@@ -52,13 +54,14 @@ import com.lubover.singularity.order.tx.OrderLocalTransaction;
 public class OrderServiceImpl implements OrderService {
 
     private static final Logger log = LoggerFactory.getLogger(OrderServiceImpl.class);
-    private static final BigDecimal PRODUCT_PRICE = BigDecimal.valueOf(99);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().registerModule(new JavaTimeModule());
 
     private final Allocator allocator;
     private final OrderMapper orderMapper;
     private final UserClient userClient;
     private final MerchantClient merchantClient;
+    private final ProductClient productClient;
+    private final StockClient stockClient;
     private final SlotRegistry slotRegistry;
     private final StringRedisTemplate redisTemplate;
     private final DefaultMQProducerImpl producerImpl;
@@ -78,7 +81,9 @@ public class OrderServiceImpl implements OrderService {
             SlotRegistry slotRegistry,
             OrderMapper orderMapper,
             UserClient userClient,
-            MerchantClient merchantClient) {
+            MerchantClient merchantClient,
+            ProductClient productClient,
+            StockClient stockClient) {
         DefaultMQProducer producer = (DefaultMQProducer) rocketMQTemplate.getProducer();
         this.producer = producer;
         this.producerImpl = producer.getDefaultMQProducerImpl();
@@ -91,6 +96,8 @@ public class OrderServiceImpl implements OrderService {
         this.orderMapper = orderMapper;
         this.userClient = userClient;
         this.merchantClient = merchantClient;
+        this.productClient = productClient;
+        this.stockClient = stockClient;
         this.slotRegistry = slotRegistry;
         this.redisTemplate = redisTemplate;
     }
@@ -118,6 +125,13 @@ public class OrderServiceImpl implements OrderService {
                 return new Result(false, "商品库存不足或不存在");
             }
 
+            BigDecimal amount;
+            try {
+                amount = resolveProductPrice(productId);
+            } catch (IllegalStateException e) {
+                return new Result(false, e.getMessage());
+            }
+
             String orderId = UUID.randomUUID().toString();
             String redisStockKey = targetSlot.getRedisStockKey();
             LocalDateTime createTime = LocalDateTime.now();
@@ -132,6 +146,7 @@ public class OrderServiceImpl implements OrderService {
             orderMessage.setUserId(actor.getId());
             orderMessage.setSlotId(targetSlot.getId());
             orderMessage.setCreateTime(createTime);
+            orderMessage.setAmount(amount);
 
             return executeTransaction(orderId, orderMessage, localTx);
         }, executor);
@@ -157,15 +172,23 @@ public class OrderServiceImpl implements OrderService {
             return new Result(false, "订单状态不支持支付");
         }
 
+        BigDecimal amount = resolveOrderAmount(order);
+        if (amount == null) {
+            return new Result(false, "订单金额无效");
+        }
+
         boolean isMerchant = "merchant".equalsIgnoreCase(userType);
+        Long buyerMerchantId = isMerchant ? parseLongId(userId) : null;
+        if (isMerchant && buyerMerchantId == null) {
+            return new Result(false, "merchantId 格式非法");
+        }
 
         if (isMerchant) {
             // 商户扣款
             try {
-                Long merchantId = Long.parseLong(userId);
                 Map<String, Object> deductBody = new HashMap<>();
-                deductBody.put("merchantId", merchantId);
-                deductBody.put("amount", PRODUCT_PRICE);
+                deductBody.put("merchantId", buyerMerchantId);
+                deductBody.put("amount", amount);
                 Map<String, Object> deductResult = merchantClient.deductBalance(deductBody);
                 if (!Boolean.TRUE.equals(deductResult.get("success"))) {
                     String msg = deductResult.get("message") != null
@@ -173,17 +196,18 @@ public class OrderServiceImpl implements OrderService {
                             : "余额不足";
                     return new Result(false, msg);
                 }
-            } catch (NumberFormatException e) {
-                return new Result(false, "merchantId 格式非法");
             } catch (Exception e) {
                 return new Result(false, "扣款失败: " + e.getMessage());
             }
         } else {
             // 用户扣款
             try {
-                Long uid = Long.parseLong(userId);
+                Long uid = parseLongId(userId);
+                if (uid == null) {
+                    return new Result(false, "userId 格式非法");
+                }
                 Map<String, BigDecimal> body = new HashMap<>();
-                body.put("amount", PRODUCT_PRICE);
+                body.put("amount", amount);
                 Map<String, Object> deductResult = userClient.deductBalance(uid, body);
                 if (!Boolean.TRUE.equals(deductResult.get("success"))) {
                     String msg = deductResult.get("message") != null
@@ -191,8 +215,6 @@ public class OrderServiceImpl implements OrderService {
                             : "余额不足";
                     return new Result(false, msg);
                 }
-            } catch (NumberFormatException e) {
-                return new Result(false, "userId 格式非法");
             } catch (Exception e) {
                 return new Result(false, "扣款失败: " + e.getMessage());
             }
@@ -200,18 +222,37 @@ public class OrderServiceImpl implements OrderService {
 
         orderMapper.updateStatus(orderId, "PAID");
 
-        // 支付成功后，给对应商户增加余额
+        // 支付成功后同步扣减 MySQL 库存（与 order-topic 消费共用 orderId 幂等）
+        try {
+            String productId = order.getProductId();
+            if (productId != null && !productId.isBlank()) {
+                Map<String, Object> deductBody = new HashMap<>();
+                deductBody.put("productId", productId);
+                deductBody.put("orderId", orderId);
+                deductBody.put("quantity", 1);
+                Map<String, Object> stockResult = stockClient.deductForOrder(deductBody);
+                if (!Boolean.TRUE.equals(stockResult.get("success"))) {
+                    log.warn("支付后扣库存失败: orderId={}, productId={}, result={}", orderId, productId, stockResult);
+                } else {
+                    log.info("支付后扣库存成功: orderId={}, productId={}", orderId, productId);
+                }
+            }
+        } catch (Exception e) {
+            log.error("支付后扣库存异常: orderId={}", orderId, e);
+        }
+
+        // 支付成功后，按商品归属给卖家商户入账（含商户自购、普通用户购买）
         try {
             String productId = order.getProductId();
             if (productId != null && !productId.isBlank()) {
                 Map<String, Object> addBalanceBody = new HashMap<>();
                 addBalanceBody.put("productId", productId);
-                addBalanceBody.put("amount", PRODUCT_PRICE);
+                addBalanceBody.put("amount", amount);
                 Map<String, Object> merchantResult = merchantClient.addBalanceByProduct(addBalanceBody);
                 if (!Boolean.TRUE.equals(merchantResult.get("success"))) {
                     log.warn("商户余额增加失败: orderId={}, productId={}, result={}", orderId, productId, merchantResult);
                 } else {
-                    log.info("商户余额增加成功: orderId={}, productId={}, amount={}", orderId, productId, PRODUCT_PRICE);
+                    log.info("商户余额增加成功: orderId={}, productId={}, amount={}", orderId, productId, amount);
                 }
             }
         } catch (Exception e) {
@@ -219,6 +260,56 @@ public class OrderServiceImpl implements OrderService {
         }
 
         return new Result(true, orderId);
+    }
+
+    private BigDecimal resolveOrderAmount(Order order) {
+        if (order.getAmount() != null && order.getAmount().compareTo(BigDecimal.ZERO) > 0) {
+            return order.getAmount();
+        }
+        try {
+            return resolveProductPrice(order.getProductId());
+        } catch (IllegalStateException e) {
+            log.warn("resolve order amount failed: orderId={}, productId={}", order.getOrderId(), order.getProductId(), e);
+            return null;
+        }
+    }
+
+    private BigDecimal resolveProductPrice(String productId) {
+        if (productId == null || productId.isBlank()) {
+            throw new IllegalStateException("商品不存在");
+        }
+        try {
+            Map<String, Object> response = productClient.getProduct(productId.trim());
+            if (!Boolean.TRUE.equals(response.get("success"))) {
+                throw new IllegalStateException("商品不存在");
+            }
+            Object dataObj = response.get("data");
+            if (!(dataObj instanceof Map<?, ?> data)) {
+                throw new IllegalStateException("商品不存在");
+            }
+            Object priceObj = data.get("price");
+            if (priceObj == null) {
+                throw new IllegalStateException("商品价格无效");
+            }
+            BigDecimal price = new BigDecimal(priceObj.toString());
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalStateException("商品价格无效");
+            }
+            return price;
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("查询商品价格失败: productId={}", productId, e);
+            throw new IllegalStateException("查询商品价格失败");
+        }
+    }
+
+    private Long parseLongId(String rawId) {
+        try {
+            return Long.parseLong(rawId);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     // ---- transaction ----
@@ -296,6 +387,13 @@ public class OrderServiceImpl implements OrderService {
                 context.setResult(new Result(false, "slot productId missing for slot: " + slot.getId()));
                 return;
             }
+            BigDecimal amount;
+            try {
+                amount = resolveProductPrice(productId);
+            } catch (IllegalStateException e) {
+                context.setResult(new Result(false, e.getMessage()));
+                return;
+            }
             LocalDateTime createTime = LocalDateTime.now();
 
             OrderLocalTransaction localTx = new OrderLocalTransaction(
@@ -308,6 +406,7 @@ public class OrderServiceImpl implements OrderService {
             orderMessage.setUserId(actor.getId());
             orderMessage.setSlotId(slot.getId());
             orderMessage.setCreateTime(createTime);
+            orderMessage.setAmount(amount);
 
             Object riskObj = context.getValue("fraud.riskScore");
             if (riskObj instanceof Double risk) {
