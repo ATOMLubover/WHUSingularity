@@ -1,10 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { App as AntApp, ConfigProvider } from 'antd'
+import { ConfigProvider } from 'antd'
 import { AuthProvider } from './contexts/AuthContext'
 import { MerchantAuthProvider } from './contexts/MerchantAuthContext'
 import { ProtectedRoute } from './components/AuthGuard'
 import { AdminRoute } from './components/AdminGuard'
-import { MerchantRoute } from './components/MerchantGuard'
 import AppLayout from './components/AppLayout'
 import LoginPage from './pages/Login'
 import RegisterPage from './pages/Register'
@@ -18,6 +17,7 @@ import AdminMonitorPanel from './pages/admin/AdminMonitorPanel'
 import WebMCPDemo from './pages/WebMCPDemo'
 import MerchantProductList from './pages/merchant/MerchantProductList'
 import MerchantCenter from './pages/merchant/MerchantCenter'
+import MerchantOrders from './pages/merchant/MerchantOrders'
 
 export default function App() {
   return (
@@ -32,11 +32,10 @@ export default function App() {
         colorTextDisabled: '#c1c6c8',
       },
     }}>
-      <AntApp>
-        <BrowserRouter>
-          <AuthProvider>
-            <MerchantAuthProvider>
-              <Routes>
+      <BrowserRouter>
+        <AuthProvider>
+          <MerchantAuthProvider>
+            <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
@@ -48,15 +47,15 @@ export default function App() {
                 <Route path="/admin/orders" element={<AdminRoute><AdminOrderList /></AdminRoute>} />
                 <Route path="/admin/monitor" element={<AdminRoute><AdminMonitorPanel /></AdminRoute>} />
                 <Route path="/webmcp-demo" element={<WebMCPDemo />} />
-                <Route path="/merchant/products" element={<MerchantRoute><MerchantProductList /></MerchantRoute>} />
-                <Route path="/merchant/center" element={<MerchantRoute><MerchantCenter /></MerchantRoute>} />
+                <Route path="/merchant/products" element={<MerchantProductList />} />
+                <Route path="/merchant/center" element={<MerchantCenter />} />
+                <Route path="/merchant/orders" element={<MerchantOrders />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </MerchantAuthProvider>
         </AuthProvider>
       </BrowserRouter>
-      </AntApp>
     </ConfigProvider>
   )
 }
