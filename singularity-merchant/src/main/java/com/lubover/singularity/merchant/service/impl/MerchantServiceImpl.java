@@ -18,6 +18,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 public class MerchantServiceImpl implements MerchantService {
 
@@ -142,6 +145,53 @@ public class MerchantServiceImpl implements MerchantService {
         merchantMapper.updateStatus(id, status);
     }
 
+    @Override
+    @Transactional
+    public MerchantView recharge(java.math.BigDecimal amount) {
+        Merchant merchant = getCurrentMerchant();
+        java.math.BigDecimal currentBalance = merchant.getBalance();
+        if (currentBalance == null) {
+            currentBalance = java.math.BigDecimal.ZERO;
+        }
+        merchant.setBalance(currentBalance.add(amount));
+        merchantMapper.update(merchant);
+        return convertToView(getMerchantById(merchant.getId()));
+    }
+
+    @Override
+    @Transactional
+    public void addBalance(Long merchantId, java.math.BigDecimal amount) {
+        Merchant merchant = getMerchantById(merchantId);
+        java.math.BigDecimal currentBalance = merchant.getBalance();
+        if (currentBalance == null) {
+            currentBalance = java.math.BigDecimal.ZERO;
+        }
+        merchant.setBalance(currentBalance.add(amount));
+        merchantMapper.update(merchant);
+    }
+
+    @Override
+    @Transactional
+    public void deductBalance(Long merchantId, java.math.BigDecimal amount) {
+        Merchant merchant = getMerchantById(merchantId);
+        java.math.BigDecimal currentBalance = merchant.getBalance();
+        if (currentBalance == null) {
+            currentBalance = java.math.BigDecimal.ZERO;
+        }
+        if (currentBalance.compareTo(amount) < 0) {
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "余额不足");
+        }
+        merchant.setBalance(currentBalance.subtract(amount));
+        merchantMapper.update(merchant);
+    }
+
+    @Override
+    public List<MerchantView> listAll() {
+        return merchantMapper.selectAll().stream()
+                .map(this::convertToView)
+                .collect(Collectors.toList());
+    }
+
     private MerchantView convertToView(Merchant merchant) {
         MerchantView view = new MerchantView();
         view.setId(merchant.getId());
@@ -153,6 +203,7 @@ public class MerchantServiceImpl implements MerchantService {
         view.setDescription(merchant.getDescription());
         view.setStatus(merchant.getStatus());
         view.setAvatar(merchant.getAvatar());
+        view.setBalance(merchant.getBalance());
         view.setCreateTime(merchant.getCreateTime());
         return view;
     }

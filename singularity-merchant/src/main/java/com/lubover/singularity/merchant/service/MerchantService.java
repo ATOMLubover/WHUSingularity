@@ -4,6 +4,8 @@ import com.lubover.singularity.merchant.dto.LoginResponse;
 import com.lubover.singularity.merchant.dto.MerchantView;
 import com.lubover.singularity.merchant.entity.Merchant;
 
+import java.util.List;
+
 public interface MerchantService {
 
     Merchant register(String username, String password, String shopName, String contactName, String contactPhone, String address, String description);
@@ -23,4 +25,12 @@ public interface MerchantService {
     Merchant updateMerchant(Merchant merchant);
 
     void updateMerchantStatus(Long id, Integer status);
+
+    MerchantView recharge(java.math.BigDecimal amount);
+
+    void addBalance(Long merchantId, java.math.BigDecimal amount);
+
+    void deductBalance(Long merchantId, java.math.BigDecimal amount);
+
+    List<MerchantView> listAll();
 }

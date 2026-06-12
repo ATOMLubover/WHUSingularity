@@ -20,9 +20,15 @@ export const merchantApi = {
   profile: () =>
     request<MerchantView>({ method: 'GET', url: '/api/merchant/profile' }),
 
+  list: () =>
+    request<MerchantView[]>({ method: 'GET', url: '/api/merchant/list' }),
+
   updateProfile: (data: UpdateMerchantRequest) =>
     request<MerchantView>({ method: 'PUT', url: '/api/merchant/profile', data }),
 
   getMerchant: (id: number) =>
     request<MerchantView>({ method: 'GET', url: `/api/merchant/${id}` }),
+
+  recharge: (amount: number) =>
+    request<MerchantView>({ method: 'POST', url: '/api/merchant/recharge', data: { amount } }),
 }
