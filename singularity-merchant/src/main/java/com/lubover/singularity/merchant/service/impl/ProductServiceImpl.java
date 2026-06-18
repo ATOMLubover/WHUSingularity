@@ -79,8 +79,9 @@ public class ProductServiceImpl implements ProductService {
             slotReq.put("slotId", slotId);
             slotReq.put("redisKey", redisKey);
             slotReq.put("productId", productId);
+            slotReq.put("quantity", totalQuantity);
             orderServiceClient.registerSlot(slotReq);
-            System.out.println("Slot registered: slotId=" + slotId + ", productId=" + productId);
+            System.out.println("Slot registered: slotId=" + slotId + ", productId=" + productId + ", quantity=" + totalQuantity);
         } catch (Exception e) {
             System.err.println("Failed to register slot for product: " + productId + ", error: " + e.getMessage());
         }
