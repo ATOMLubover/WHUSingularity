@@ -112,15 +112,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public CompletableFuture<Result> snagOrderByProduct(Actor actor, String productId) {
         return CompletableFuture.supplyAsync(() -> {
-            StockSlot targetSlot = null;
-            for (StockSlot slot : slotRegistry.getAllSlots()) {
-                if (productId.equals(slot.getProductId())) {
-                    if (!Boolean.TRUE.equals(slotRegistry.getEmptyStatus(slot.getId()))) {
-                        targetSlot = slot;
-                        break;
-                    }
-                }
-            }
+            StockSlot targetSlot = resolveSnagSlot(productId);
             if (targetSlot == null) {
                 return new Result(false, "商品库存不足或不存在");
             }
@@ -416,5 +408,62 @@ public class OrderServiceImpl implements OrderService {
             Result result = executeTransaction(orderId, orderMessage, localTx);
             context.setResult(result);
         };
+    }
+
+    private StockSlot resolveSnagSlot(String productId) {
+        if (productId == null || productId.isBlank()) {
+            return null;
+        }
+        String key = productId.trim();
+        discoverMerchantSlotFromRedis(key);
+
+        for (StockSlot slot : slotRegistry.getAllSlots()) {
+            if (key.equals(slot.getProductId()) && isSnagSlotAvailable(slot)) {
+                return slot;
+            }
+        }
+        return null;
+    }
+
+    private void discoverMerchantSlotFromRedis(String productId) {
+        String slotId = "slot-" + productId;
+        if (slotRegistry.hasSlot(slotId)) {
+            return;
+        }
+        Map<Object, Object> meta = redisTemplate.opsForHash().entries("slot-meta:" + slotId);
+        if (meta == null || meta.isEmpty()) {
+            return;
+        }
+        String redisKey = meta.get("redisKey") != null
+                ? String.valueOf(meta.get("redisKey"))
+                : "stock:" + slotId;
+        String resolvedProductId = meta.get("productId") != null
+                ? String.valueOf(meta.get("productId"))
+                : productId;
+        slotRegistry.addSlot(slotId, redisKey, resolvedProductId);
+    }
+
+    private boolean isSnagSlotAvailable(StockSlot slot) {
+        long stock = readRedisStock(slot.getRedisStockKey());
+        if (stock <= 0) {
+            return false;
+        }
+        if (Boolean.TRUE.equals(slotRegistry.getEmptyStatus(slot.getId()))) {
+            slotRegistry.clearEmpty(slot.getId());
+        }
+        return true;
+    }
+
+    private long readRedisStock(String redisStockKey) {
+        try {
+            String raw = redisTemplate.opsForValue().get(redisStockKey);
+            if (raw == null || raw.isBlank()) {
+                return 0L;
+            }
+            return Long.parseLong(raw.trim());
+        } catch (NumberFormatException e) {
+            log.warn("invalid redis stock value: key={}", redisStockKey);
+            return 0L;
+        }
     }
 }

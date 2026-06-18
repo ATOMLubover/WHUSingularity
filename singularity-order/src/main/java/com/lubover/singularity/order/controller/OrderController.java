@@ -221,7 +221,17 @@ public class OrderController {
             return failure("productId is required");
         }
 
+        Object quantityObj = request.get("quantity");
+        if (quantityObj != null) {
+            long quantity = Long.parseLong(String.valueOf(quantityObj));
+            if (quantity < 0) {
+                return failure("quantity must be >= 0");
+            }
+            stringRedisTemplate.opsForValue().set(redisKey, String.valueOf(quantity));
+        }
+
         slotRegistry.addSlot(slotId, redisKey, productId);
+        slotRegistry.clearEmpty(slotId);
         return success(Map.of("slotId", slotId, "redisKey", redisKey, "productId", productId));
     }
 
